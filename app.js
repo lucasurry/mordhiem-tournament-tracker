@@ -428,8 +428,8 @@ function renderHistory() {
         .map(m => {
           const n1 = playerName(m.p1), n2 = playerName(m.p2);
           let resultLabel = 'Draw';
-          if      (m.result === 'p1') resultLabel = `${n1} won`;
-          else if (m.result === 'p2') resultLabel = `${n2} won`;
+          if      (m.result === 'p1') resultLabel = `Winner: ${n1}`;
+          else if (m.result === 'p2') resultLabel = `Winner: ${n2}`;
           const undoOpt = isCurrentRound
             ? `<option value="undo">Clear (pending)</option>`
             : '';

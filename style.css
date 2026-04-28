@@ -425,8 +425,9 @@ body {
 }
 
 .history-result {
-  color: var(--text-muted);
-  font-size: .82rem;
+  color: var(--text);
+  font-size: .85rem;
+  font-weight: 600;
   white-space: nowrap;
   text-align: right;
 }
