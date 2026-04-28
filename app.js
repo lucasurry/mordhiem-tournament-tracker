@@ -54,42 +54,32 @@ function setsFromSchedule(sched) {
   });
 }
 
-// Saved roster you can add in one click from Admin (skipped if that name already exists).
-const PRESET_PLAYERS = [
-  { id: 'andy',   name: 'Andy',   active: true },
-  { id: 'bill',   name: 'Bill',   active: true },
-  { id: 'geoff',  name: 'Geoff',  active: true },
-  { id: 'lucas',  name: 'Lucas',  active: true },
-  { id: 'adrian', name: 'Adrian', active: true },
-  { id: 'phil',   name: 'Phil',   active: true },
-];
-
-// Fresh tournament: no players, no rounds (use Admin to add people, then generate Round 1).
+// Default tournament baked into the app: six players, Round 1 = full round-robin (all sets generated).
+// Already played: Andy beat Bill, Lucas beat Geoff. Adrian vs Phil still open in Set 1; Sets 2–5 pending.
+// Circle order [andy, geoff, adrian, phil, lucas, bill] yields Set 1 pairings.
 function defaultState() {
   state = {
-    players: [],
+    players: [
+      { id: 'andy',   name: 'Andy',   active: true },
+      { id: 'bill',   name: 'Bill',   active: true },
+      { id: 'geoff',  name: 'Geoff',  active: true },
+      { id: 'lucas',  name: 'Lucas',  active: true },
+      { id: 'adrian', name: 'Adrian', active: true },
+      { id: 'phil',   name: 'Phil',   active: true },
+    ],
     rounds: [],
     byeHistory: [],
     idCounter: 1,
   };
-}
 
-function addPresetRoster() {
-  let added = 0;
-  PRESET_PLAYERS.forEach(template => {
-    const nameLc = template.name.toLowerCase();
-    if (state.players.some(p => p.name.trim().toLowerCase() === nameLc)) return;
-    let id = template.id;
-    if (state.players.some(p => p.id === id)) id = freshId();
-    state.players.push({ id, name: template.name, active: true });
-    added++;
-  });
-  if (added === 0) {
-    alert('Those names are already on the player list.');
-    return;
-  }
-  saveState();
-  render();
+  const sched = roundRobinSchedule(['andy', 'geoff', 'adrian', 'phil', 'lucas', 'bill'], 0);
+  const sets = setsFromSchedule(sched);
+  sets[0].matches[0].result = 'p1';
+  sets[0].matches[0].played = true;
+  sets[0].matches[1].result = 'p2';
+  sets[0].matches[1].played = true;
+
+  state.rounds.push({ roundNumber: 1, sets });
 }
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -241,7 +231,7 @@ function toggleActive(playerId) {
 }
 
 function resetTournament() {
-  if (!confirm('Reset ALL tournament data and clear all players? This cannot be undone.')) return;
+  if (!confirm('Reset ALL progress and restore the default tournament (six players, round 1 in progress with Andy/Bill and Geoff/Lucas already recorded)? This cannot be undone.')) return;
   localStorage.removeItem(STORAGE_KEY);
   defaultState();
   saveState();
@@ -508,8 +498,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('reset-btn').addEventListener('click', resetTournament);
-
-  document.getElementById('add-preset-roster-btn').addEventListener('click', addPresetRoster);
 
   render();
 });
