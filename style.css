@@ -332,6 +332,18 @@ body {
 
 .history-result { color: var(--text-muted); font-size: .82rem; }
 
+.history-result-cell {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-shrink: 0;
+}
+
+.history-undo {
+  margin: 0;
+  padding: .15rem .4rem;
+}
+
 /* ── Admin: Players ───────────────────────────────────────────────────────── */
 .player-item {
   display: flex;

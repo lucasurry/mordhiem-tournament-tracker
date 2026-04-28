@@ -270,38 +270,23 @@ function renderUpcoming() {
   }
 
   const roundIdx = state.rounds.length - 1;
-  const html = rnd.matches
-    .filter(m => m.p1 !== 'bye' && m.p2 !== 'bye')
-    .map(m => {
-      const n1 = playerName(m.p1);
-      const n2 = playerName(m.p2);
+  const pending = rnd.matches.filter(m => !m.played && m.p1 !== 'bye' && m.p2 !== 'bye');
 
-      if (m.played) {
-        let label = '', cls = '';
-        if      (m.result === 'p1')   { label = `${n1} won`;  cls = 'win-p1'; }
-        else if (m.result === 'p2')   { label = `${n2} won`;  cls = 'win-p2'; }
-        else                          { label = 'Draw';        cls = 'draw';   }
+  const html = pending.map(m => {
+    const n1 = playerName(m.p1);
+    const n2 = playerName(m.p2);
+    return `
+      <div class="match-card">
+        <div class="match-players">${n1} <span class="vs">vs</span> ${n2}</div>
+        <div class="match-actions">
+          <button class="result-btn btn-win"  onclick="setMatchResult(${roundIdx},'${m.id}','p1')">${n1} Won</button>
+          <button class="result-btn btn-draw" onclick="setMatchResult(${roundIdx},'${m.id}','draw')">Draw</button>
+          <button class="result-btn btn-win"  onclick="setMatchResult(${roundIdx},'${m.id}','p2')">${n2} Won</button>
+        </div>
+      </div>`;
+  }).join('');
 
-        return `
-          <div class="match-card played">
-            <div class="match-players">${n1} <span class="vs">vs</span> ${n2}</div>
-            <div class="match-result ${cls}">${label}</div>
-            <button class="undo-btn" onclick="undoMatch(${roundIdx},'${m.id}')">undo</button>
-          </div>`;
-      }
-
-      return `
-        <div class="match-card">
-          <div class="match-players">${n1} <span class="vs">vs</span> ${n2}</div>
-          <div class="match-actions">
-            <button class="result-btn btn-win"  onclick="setMatchResult(${roundIdx},'${m.id}','p1')">${n1} Won</button>
-            <button class="result-btn btn-draw" onclick="setMatchResult(${roundIdx},'${m.id}','draw')">Draw</button>
-            <button class="result-btn btn-win"  onclick="setMatchResult(${roundIdx},'${m.id}','p2')">${n2} Won</button>
-          </div>
-        </div>`;
-    }).join('');
-
-  content.innerHTML = html || '<p class="empty">No matches in this round.</p>';
+  content.innerHTML = html || '<p class="empty">No pending matches this round.</p>';
 }
 
 // ── Render: Scoreboard ─────────────────────────────────────────────────────────
@@ -338,36 +323,45 @@ function renderScoreboard() {
 }
 
 // ── Render: Match History ──────────────────────────────────────────────────────
-// Only shows fully-completed rounds (current in-progress round stays in Upcoming).
+// Shows every finished match, grouped by round (includes in-progress rounds).
 function renderHistory() {
   const content = document.getElementById('history-content');
 
-  const done = state.rounds.filter(r =>
-    isComplete(r) && r.matches.some(m => m.p1 !== 'bye' && m.p2 !== 'bye')
+  const withPlayed = state.rounds.filter(r =>
+    r.matches.some(m => m.played && m.p1 !== 'bye' && m.p2 !== 'bye')
   );
 
-  if (done.length === 0) {
-    content.innerHTML = '<p class="empty">No completed rounds yet.</p>';
+  if (withPlayed.length === 0) {
+    content.innerHTML = '<p class="empty">No matches recorded yet.</p>';
     return;
   }
 
-  // Most recent round first
-  const html = [...done].reverse().map((rnd, idx) => {
+  const sorted = [...withPlayed].sort((a, b) => b.roundNumber - a.roundNumber);
+
+  const html = sorted.map((rnd, idx) => {
+    const roundIdx = state.rounds.indexOf(rnd);
+    const isCurrentRound = roundIdx === state.rounds.length - 1;
+
     const rows = rnd.matches
-      .filter(m => m.p1 !== 'bye' && m.p2 !== 'bye')
+      .filter(m => m.played && m.p1 !== 'bye' && m.p2 !== 'bye')
       .map(m => {
         const n1 = playerName(m.p1), n2 = playerName(m.p2);
         let result = 'Draw';
         if      (m.result === 'p1') result = `<strong>${n1}</strong> won`;
         else if (m.result === 'p2') result = `<strong>${n2}</strong> won`;
+        const undo = isCurrentRound
+          ? `<button class="undo-btn history-undo" onclick="undoMatch(${roundIdx},'${m.id}')">undo</button>`
+          : '';
         return `
           <div class="history-match">
             <span>${n1} vs ${n2}</span>
-            <span class="history-result">${result}</span>
+            <span class="history-result-cell">
+              <span class="history-result">${result}</span>
+              ${undo}
+            </span>
           </div>`;
       }).join('');
 
-    // Open the most-recent completed round by default
     const open = idx === 0 ? 'open' : '';
     return `
       <details class="round-details" ${open}>
