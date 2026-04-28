@@ -1,7 +1,43 @@
 'use strict';
 
-// ── Storage key ────────────────────────────────────────────────────────────
+// ── Storage key (kept only for one-time migration from localStorage) ────────
 const STORAGE_KEY = 'mordhiem_v1';
+
+// ── Firebase ──────────────────────────────────────────────────────────────────
+let dbRef;             // firebase.database().ref('tournament')
+let dbReady = false;   // true once the first value snapshot has arrived
+
+function initDb() {
+  dbRef = firebase.database().ref('tournament');
+
+  dbRef.on('value', snapshot => {
+    const data = snapshot.val();
+    if (data) {
+      state = data;
+      if (!state.byeHistory) state.byeHistory = [];
+      if (!state.idCounter)  state.idCounter  = 100;
+      state.rounds = state.rounds.map(migrateLegacyRound);
+    } else {
+      // Nothing in Firebase yet — migrate from localStorage or use defaults.
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          state = JSON.parse(raw);
+          if (!state.byeHistory) state.byeHistory = [];
+          if (!state.idCounter)  state.idCounter  = 100;
+          state.rounds = state.rounds.map(migrateLegacyRound);
+        } else {
+          initialTournamentState();
+        }
+      } catch (_) {
+        initialTournamentState();
+      }
+      dbRef.set(state);
+    }
+    dbReady = true;
+    render();
+  });
+}
 
 // ── Round-robin: each tournament "round" is a full cycle (everyone vs everyone once).
 // Returns one entry per set (scheduling slot): { matches: [[p1,p2],...], byePlayer: id|null }
@@ -103,22 +139,8 @@ function migrateLegacyRound(rnd) {
   };
 }
 
-function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      state = JSON.parse(raw);
-      if (!state.byeHistory) state.byeHistory = [];
-      if (!state.idCounter) state.idCounter = 100;
-      state.rounds = state.rounds.map(migrateLegacyRound);
-      return;
-    }
-  } catch (_) { /* fall through */ }
-  initialTournamentState();
-}
-
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  dbRef.set(state);
 }
 
 // ── Small helpers ─────────────────────────────────────────────────────────────
@@ -244,7 +266,6 @@ function resetTournament() {
   localStorage.removeItem(STORAGE_KEY);
   defaultState();
   saveState();
-  render();
 }
 
 // ── Tab switching ──────────────────────────────────────────────────────────────
@@ -497,6 +518,7 @@ function renderAdmin() {
 
 // ── Master render ──────────────────────────────────────────────────────────────
 function render() {
+  if (!dbReady) return;
   renderUpcoming();
   renderScoreboard();
   renderHistory();
@@ -529,7 +551,12 @@ window.handleGenerate = function () {
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  loadState();
+  // Show a connecting state while Firebase loads the first snapshot.
+  ['upcoming-content', 'scoreboard-content', 'history-content'].forEach(id => {
+    document.getElementById(id).innerHTML = '<p class="empty">Connecting…</p>';
+  });
+
+  initDb();
 
   document.querySelectorAll('.tab-btn').forEach(btn =>
     btn.addEventListener('click', () => switchTab(btn.dataset.tab))
@@ -544,13 +571,4 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('reset-btn').addEventListener('click', resetTournament);
-
-  window.addEventListener('storage', e => {
-    if (e.key === STORAGE_KEY) {
-      loadState();
-      render();
-    }
-  });
-
-  render();
 });

@@ -6,8 +6,8 @@
   <!-- Hint: avoid stale document when switching deploys (GitHub Pages still caches ~10m on CDN) -->
   <meta http-equiv="Cache-Control" content="max-age=0, must-revalidate" />
   <title>Mordhiem Tournament</title>
-  <link rel="stylesheet" href="style.css?v=abb42ffe3072cee9ccf581cb3425663759a1f0e9">
-  <meta name="deploy-revision" content="abb42ffe3072cee9ccf581cb3425663759a1f0e9" />
+  <link rel="stylesheet" href="style.css?v=9fe72394c1be7abf8796a1e22fb04581970685cb">
+  <meta name="deploy-revision" content="9fe72394c1be7abf8796a1e22fb04581970685cb" />
 </head>
 <body>
 
@@ -72,6 +72,21 @@
 
   </div>
 
-  <script src="app.js?v=abb42ffe3072cee9ccf581cb3425663759a1f0e9"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey:            "REPLACE_apiKey",
+      authDomain:        "REPLACE_projectId.firebaseapp.com",
+      databaseURL:       "https://REPLACE_projectId-default-rtdb.firebaseio.com",
+      projectId:         "REPLACE_projectId",
+      storageBucket:     "REPLACE_projectId.firebasestorage.app",
+      messagingSenderId: "REPLACE_messagingSenderId",
+      appId:             "REPLACE_appId"
+    });
+  </script>
+
+  <script src="app.js?v=9fe72394c1be7abf8796a1e22fb04581970685cb"></script>
 </body>
 </html>
