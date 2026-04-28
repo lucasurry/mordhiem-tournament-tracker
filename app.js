@@ -54,10 +54,20 @@ function setsFromSchedule(sched) {
   });
 }
 
-// Default tournament baked into the app: six players, Round 1 = full round-robin (all sets generated).
-// Already played: Andy beat Bill, Lucas beat Geoff. Adrian vs Phil still open in Set 1; Sets 2–5 pending.
-// Circle order [andy, geoff, adrian, phil, lucas, bill] yields Set 1 pairings.
+// Blank slate used by Reset — no players, no rounds.
 function defaultState() {
+  state = {
+    players: [],
+    rounds: [],
+    byeHistory: [],
+    idCounter: 1,
+  };
+}
+
+// The current live tournament seeded on first ever visit (nothing in localStorage).
+// Round 1 is a full round-robin (5 sets). Andy beat Bill and Lucas beat Geoff in Set 1.
+// Circle order [andy, geoff, adrian, phil, lucas, bill] → Set 1: Andy–Bill, Geoff–Lucas, Adrian–Phil.
+function initialTournamentState() {
   state = {
     players: [
       { id: 'andy',   name: 'Andy',   active: true },
@@ -104,7 +114,7 @@ function loadState() {
       return;
     }
   } catch (_) { /* fall through */ }
-  defaultState();
+  initialTournamentState();
 }
 
 function saveState() {
@@ -231,7 +241,7 @@ function toggleActive(playerId) {
 }
 
 function resetTournament() {
-  if (!confirm('Reset ALL progress and restore the default tournament (six players, round 1 in progress with Andy/Bill and Geoff/Lucas already recorded)? This cannot be undone.')) return;
+  if (!confirm('Reset ALL tournament data? This will clear all players and matches. This cannot be undone.')) return;
   localStorage.removeItem(STORAGE_KEY);
   defaultState();
   saveState();
