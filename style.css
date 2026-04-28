@@ -216,18 +216,19 @@ body {
 
 .match-actions {
   display: flex;
-  gap: .45rem;
+  gap: .35rem;
   justify-content: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .result-btn {
-  padding: .4rem .85rem;
+  padding: .35rem .55rem;
   border-radius: 6px;
   border: 1px solid;
   cursor: pointer;
-  font-size: .82rem;
+  font-size: .75rem;
   font-weight: 500;
+  white-space: nowrap;
   transition: background .15s, color .15s, transform .08s;
 }
 .result-btn:active { transform: scale(.96); }
