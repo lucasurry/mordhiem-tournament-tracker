@@ -71,6 +71,21 @@
 
   </div>
 
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey:            "REPLACE_apiKey",
+      authDomain:        "REPLACE_projectId.firebaseapp.com",
+      databaseURL:       "https://REPLACE_projectId-default-rtdb.firebaseio.com",
+      projectId:         "REPLACE_projectId",
+      storageBucket:     "REPLACE_projectId.firebasestorage.app",
+      messagingSenderId: "REPLACE_messagingSenderId",
+      appId:             "REPLACE_appId"
+    });
+  </script>
+
   <script src="app.js?v=DEV"></script>
 </body>
 </html>
