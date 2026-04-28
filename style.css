@@ -191,6 +191,15 @@ body {
   border-color: var(--border-light);
 }
 
+.match-set-label {
+  text-align: center;
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--accent);
+  margin-bottom: .3rem;
+}
+
 .match-players {
   text-align: center;
   font-size: 1.05rem;

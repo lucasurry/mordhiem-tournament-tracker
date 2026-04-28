@@ -287,13 +287,39 @@ function renderUpcoming() {
   title.textContent = `Round ${rnd.roundNumber} · Set ${curSet.setNumber} of ${nSets}`;
 
   const roundIdx = state.rounds.length - 1;
-  const pending = curSet.matches.filter(m => !m.played && m.p1 !== 'bye' && m.p2 !== 'bye');
 
-  const grid = pending.map(m => {
-    const n1 = playerName(m.p1);
-    const n2 = playerName(m.p2);
+  // A player is "ready" if they have no unplayed real match in any set before setIdx.
+  function playerReady(playerId, setIdx) {
+    for (let s = 0; s < setIdx; s++) {
+      const earlier = rnd.sets[s].matches.find(
+        m => !m.played && m.p2 !== 'bye' && (m.p1 === playerId || m.p2 === playerId)
+      );
+      if (earlier) return false;
+    }
+    return true;
+  }
+
+  // Collect every unplayed match across all sets where both players are ready.
+  const playable = [];
+  const waiting  = [];   // { set, match } still blocked
+
+  rnd.sets.forEach((st, sIdx) => {
+    st.matches
+      .filter(m => !m.played && m.p2 !== 'bye')
+      .forEach(m => {
+        if (playerReady(m.p1, sIdx) && playerReady(m.p2, sIdx)) {
+          playable.push({ set: st, match: m });
+        } else {
+          waiting.push({ set: st, match: m });
+        }
+      });
+  });
+
+  const matchCard = ({ set: st, match: m }) => {
+    const n1 = playerName(m.p1), n2 = playerName(m.p2);
     return `
       <div class="match-card">
+        <div class="match-set-label">Set ${st.setNumber}</div>
         <div class="match-players">${n1} <span class="vs">vs</span> ${n2}</div>
         <div class="match-actions">
           <button class="result-btn btn-win"  onclick="setMatchResult(${roundIdx},'${m.id}','p1')">${n1} Won</button>
@@ -301,33 +327,36 @@ function renderUpcoming() {
           <button class="result-btn btn-win"  onclick="setMatchResult(${roundIdx},'${m.id}','p2')">${n2} Won</button>
         </div>
       </div>`;
-  }).join('');
+  };
 
-  const laterSets = rnd.sets.slice(aIdx + 1);
+  const grid = playable.map(matchCard).join('');
+
+  // Group waiting matches by set for the preview list.
+  const waitingBySets = [];
+  waiting.forEach(({ set: st, match: m }) => {
+    let entry = waitingBySets.find(e => e.setNumber === st.setNumber);
+    if (!entry) { entry = { setNumber: st.setNumber, lines: [] }; waitingBySets.push(entry); }
+    entry.lines.push(`${playerName(m.p1)} vs ${playerName(m.p2)}`);
+  });
+
   let previewHtml = '';
-  if (laterSets.length > 0) {
-    const blocks = laterSets.map(st => {
-      const lines = st.matches
-        .filter(m => m.p2 !== 'bye')
-        .map(m => `${playerName(m.p1)} vs ${playerName(m.p2)}`)
-        .join(', ');
-      return `
-        <div class="later-set-row">
-          <span class="later-set-label">Set ${st.setNumber}</span>
-          <span class="later-set-pairs">${lines}</span>
-        </div>`;
-    }).join('');
+  if (waitingBySets.length > 0) {
+    const blocks = waitingBySets.map(e => `
+      <div class="later-set-row">
+        <span class="later-set-label">Set ${e.setNumber}</span>
+        <span class="later-set-pairs">${e.lines.join(', ')}</span>
+      </div>`).join('');
     previewHtml = `
       <div class="later-sets-card">
-        <h3 class="later-sets-heading">Later this round</h3>
-        <p class="hint" style="margin-top:0;margin-bottom:.6rem">Scheduled matchups — enter results when you reach each set.</p>
+        <h3 class="later-sets-heading">Waiting on earlier results</h3>
+        <p class="hint" style="margin-top:0;margin-bottom:.6rem">These matches unlock once both players have finished their earlier game.</p>
         ${blocks}
       </div>`;
   }
 
   const main = grid
     ? `<div class="match-grid">${grid}</div>`
-    : '<p class="empty">No pending matches in this set.</p>';
+    : '<p class="empty">No matches ready to play yet.</p>';
 
   content.innerHTML = main + previewHtml;
 }
