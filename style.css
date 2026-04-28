@@ -191,13 +191,19 @@ body {
   border-color: var(--border-light);
 }
 
-.match-set-label {
-  text-align: center;
-  font-size: .68rem;
-  text-transform: uppercase;
-  letter-spacing: .06em;
+/* ── Set group heading ────────────────────────────────────────────────────── */
+.set-group {
+  margin-bottom: 1.1rem;
+}
+.set-group:last-child { margin-bottom: 0; }
+
+.set-group-heading {
+  font-size: .8rem;
+  font-weight: 700;
   color: var(--accent);
-  margin-bottom: .3rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: .6rem;
 }
 
 .match-players {

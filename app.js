@@ -283,8 +283,7 @@ function renderUpcoming() {
     return;
   }
 
-  const curSet = rnd.sets[aIdx];
-  title.textContent = `Round ${rnd.roundNumber} · Set ${curSet.setNumber} of ${nSets}`;
+  title.textContent = `Round ${rnd.roundNumber}`;
 
   const roundIdx = state.rounds.length - 1;
 
@@ -315,21 +314,33 @@ function renderUpcoming() {
       });
   });
 
-  const matchCard = ({ set: st, match: m }) => {
-    const n1 = playerName(m.p1), n2 = playerName(m.p2);
-    return `
-      <div class="match-card">
-        <div class="match-set-label">Set ${st.setNumber}</div>
-        <div class="match-players">${n1} <span class="vs">vs</span> ${n2}</div>
-        <div class="match-actions">
-          <button class="result-btn btn-win"  onclick="setMatchResult(${roundIdx},'${m.id}','p1')">${n1} Won</button>
-          <button class="result-btn btn-draw" onclick="setMatchResult(${roundIdx},'${m.id}','draw')">Draw</button>
-          <button class="result-btn btn-win"  onclick="setMatchResult(${roundIdx},'${m.id}','p2')">${n2} Won</button>
-        </div>
-      </div>`;
-  };
+  // Group playable matches by set number for display.
+  const playableBySets = [];
+  playable.forEach(({ set: st, match: m }) => {
+    let entry = playableBySets.find(e => e.setNumber === st.setNumber);
+    if (!entry) { entry = { setNumber: st.setNumber, matches: [] }; playableBySets.push(entry); }
+    entry.matches.push(m);
+  });
 
-  const grid = playable.map(matchCard).join('');
+  const grid = playableBySets.map(entry => {
+    const cards = entry.matches.map(m => {
+      const n1 = playerName(m.p1), n2 = playerName(m.p2);
+      return `
+        <div class="match-card">
+          <div class="match-players">${n1} <span class="vs">vs</span> ${n2}</div>
+          <div class="match-actions">
+            <button class="result-btn btn-win"  onclick="setMatchResult(${roundIdx},'${m.id}','p1')">${n1} Won</button>
+            <button class="result-btn btn-draw" onclick="setMatchResult(${roundIdx},'${m.id}','draw')">Draw</button>
+            <button class="result-btn btn-win"  onclick="setMatchResult(${roundIdx},'${m.id}','p2')">${n2} Won</button>
+          </div>
+        </div>`;
+    }).join('');
+    return `
+      <div class="set-group">
+        <h3 class="set-group-heading">Round ${rnd.roundNumber} &middot; Set ${entry.setNumber} of ${nSets}</h3>
+        <div class="match-grid">${cards}</div>
+      </div>`;
+  }).join('');
 
   // Group waiting matches by set for the preview list.
   const waitingBySets = [];
@@ -354,9 +365,7 @@ function renderUpcoming() {
       </div>`;
   }
 
-  const main = grid
-    ? `<div class="match-grid">${grid}</div>`
-    : '<p class="empty">No matches ready to play yet.</p>';
+  const main = grid || '<p class="empty">No matches ready to play yet.</p>';
 
   content.innerHTML = main + previewHtml;
 }
