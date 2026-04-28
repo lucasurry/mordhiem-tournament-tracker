@@ -18,6 +18,8 @@ jobs:
           VERSION="${{ github.sha }}"
           sed -i "s/style\.css?v=DEV/style.css?v=${VERSION}/g" index.html
           sed -i "s/app\.js?v=DEV/app.js?v=${VERSION}/g" index.html
+          # New meta each deploy → different HTML body → fresh ETag on GitHub Pages CDN
+          sed -i "s|</head>|  <meta name=\"deploy-revision\" content=\"${VERSION}\" />\n</head>|" index.html
 
       - name: Deploy to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
