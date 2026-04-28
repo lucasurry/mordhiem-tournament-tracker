@@ -155,6 +155,27 @@ body {
 }
 .btn-danger:hover:not(:disabled) { background: var(--red-bg); color: #fff; }
 
+/* ── Current round: pending matches grid ──────────────────────────────────── */
+.match-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .65rem;
+  align-items: stretch;
+}
+
+.match-grid .match-card {
+  margin-bottom: 0;
+  height: 100%;
+}
+
+@media (max-width: 720px) {
+  .match-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+  .match-grid { grid-template-columns: 1fr; }
+}
+
 /* ── Match Cards ──────────────────────────────────────────────────────────── */
 .match-card {
   background: var(--bg);

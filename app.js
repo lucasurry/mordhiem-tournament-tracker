@@ -286,7 +286,9 @@ function renderUpcoming() {
       </div>`;
   }).join('');
 
-  content.innerHTML = html || '<p class="empty">No pending matches this round.</p>';
+  content.innerHTML = html
+    ? `<div class="match-grid">${html}</div>`
+    : '<p class="empty">No pending matches this round.</p>';
 }
 
 // ── Render: Scoreboard ─────────────────────────────────────────────────────────
