@@ -350,15 +350,24 @@ function renderHistory() {
         if      (m.result === 'p1') result = `<strong>${n1}</strong> won`;
         else if (m.result === 'p2') result = `<strong>${n2}</strong> won`;
         const undo = isCurrentRound
-          ? `<button class="undo-btn history-undo" onclick="undoMatch(${roundIdx},'${m.id}')">undo</button>`
+          ? `<button type="button" class="undo-btn history-undo" onclick="undoMatch(${roundIdx},'${m.id}')">Clear (pending)</button>`
           : '';
         return `
           <div class="history-match">
-            <span>${n1} vs ${n2}</span>
-            <span class="history-result-cell">
+            <div class="history-match-top">
+              <span class="history-players">${n1} vs ${n2}</span>
               <span class="history-result">${result}</span>
+            </div>
+            <div class="history-match-edit">
+              <span class="history-edit-label">Change result</span>
+              <button type="button" class="result-btn btn-win history-edit-btn"
+                onclick="setMatchResult(${roundIdx},'${m.id}','p1')">${n1} won</button>
+              <button type="button" class="result-btn btn-draw history-edit-btn"
+                onclick="setMatchResult(${roundIdx},'${m.id}','draw')">Draw</button>
+              <button type="button" class="result-btn btn-win history-edit-btn"
+                onclick="setMatchResult(${roundIdx},'${m.id}','p2')">${n2} won</button>
               ${undo}
-            </span>
+            </div>
           </div>`;
       }).join('');
 
