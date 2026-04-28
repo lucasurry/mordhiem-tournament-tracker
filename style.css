@@ -227,7 +227,6 @@ body {
 }
 .match-result.win-p1,
 .match-result.win-p2 { color: var(--green); }
-.match-result.draw   { color: var(--blue);  }
 
 .match-actions {
   display: flex;
@@ -248,11 +247,8 @@ body {
 }
 .result-btn:active { transform: scale(.96); }
 
-.result-btn.btn-win  { color: var(--green); border-color: var(--green-bg); background: transparent; }
-.result-btn.btn-win:hover  { background: var(--green-bg); color: #fff; }
-
-.result-btn.btn-draw { color: var(--blue);  border-color: var(--blue-bg);  background: transparent; }
-.result-btn.btn-draw:hover { background: var(--blue-bg); color: #fff; }
+.result-btn.btn-win       { color: var(--green); border-color: var(--green-bg); background: transparent; }
+.result-btn.btn-win:hover { background: var(--green-bg); color: #fff; }
 
 .undo-btn {
   display: block;

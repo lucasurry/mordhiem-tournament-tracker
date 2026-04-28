@@ -159,7 +159,7 @@ function findMatchInRound(roundIdx, matchId) {
 function computeScores() {
   const map = {};
   state.players.forEach(p => {
-    map[p.id] = { id: p.id, name: p.name, active: p.active, pts: 0, w: 0, d: 0, l: 0, played: 0 };
+    map[p.id] = { id: p.id, name: p.name, active: p.active, pts: 0, w: 0, l: 0, played: 0 };
   });
 
   state.rounds.forEach(rnd => {
@@ -168,9 +168,8 @@ function computeScores() {
       const s1 = map[m.p1], s2 = map[m.p2];
       if (!s1 || !s2) return;
       s1.played++; s2.played++;
-      if      (m.result === 'p1')   { s1.pts += 3; s1.w++; s2.l++; }
-      else if (m.result === 'p2')   { s2.pts += 3; s2.w++; s1.l++; }
-      else if (m.result === 'draw') { s1.pts++; s1.d++; s2.pts++; s2.d++; }
+      if      (m.result === 'p1') { s1.pts += 3; s1.w++; s2.l++; }
+      else if (m.result === 'p2') { s2.pts += 3; s2.w++; s1.l++; }
     });
   });
 
@@ -329,9 +328,8 @@ function renderUpcoming() {
         <div class="match-card">
           <div class="match-players">${n1} <span class="vs">vs</span> ${n2}</div>
           <div class="match-actions">
-            <button class="result-btn btn-win"  onclick="setMatchResult(${roundIdx},'${m.id}','p1')">${n1} Won</button>
-            <button class="result-btn btn-draw" onclick="setMatchResult(${roundIdx},'${m.id}','draw')">Draw</button>
-            <button class="result-btn btn-win"  onclick="setMatchResult(${roundIdx},'${m.id}','p2')">${n2} Won</button>
+            <button class="result-btn btn-win" onclick="setMatchResult(${roundIdx},'${m.id}','p1')">${n1} Won</button>
+            <button class="result-btn btn-win" onclick="setMatchResult(${roundIdx},'${m.id}','p2')">${n2} Won</button>
           </div>
         </div>`;
     }).join('');
@@ -381,7 +379,6 @@ function renderScoreboard() {
       <td class="col-name">${s.name}${s.active ? '' : '<span class="tag-inactive">inactive</span>'}</td>
       <td class="col-pts">${s.pts}</td>
       <td class="col-num">${s.w}</td>
-      <td class="col-num">${s.d}</td>
       <td class="col-num">${s.l}</td>
       <td class="col-num">${s.played}</td>
     </tr>`).join('');
@@ -394,7 +391,6 @@ function renderScoreboard() {
           <th>Player</th>
           <th>Pts</th>
           <th>W</th>
-          <th>D</th>
           <th>L</th>
           <th>GP</th>
         </tr>
@@ -427,7 +423,7 @@ function renderHistory() {
         .filter(m => m.played && m.p1 !== 'bye' && m.p2 !== 'bye')
         .map(m => {
           const n1 = playerName(m.p1), n2 = playerName(m.p2);
-          let resultLabel = 'Draw';
+          let resultLabel = '?';
           if      (m.result === 'p1') resultLabel = `Winner: ${n1}`;
           else if (m.result === 'p2') resultLabel = `Winner: ${n2}`;
           const undoOpt = isCurrentRound
@@ -440,7 +436,6 @@ function renderHistory() {
               <select class="result-select" onchange="handleHistorySelect(${roundIdx},'${m.id}',this)">
                 <option value="">Change result</option>
                 <option value="p1">${n1} won</option>
-                <option value="draw">Draw</option>
                 <option value="p2">${n2} won</option>
                 ${undoOpt}
               </select>
