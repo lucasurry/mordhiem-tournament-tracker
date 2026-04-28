@@ -51,7 +51,8 @@
           <input type="text" id="add-player-input" placeholder="New player name…" maxlength="30" autocomplete="off">
           <button id="add-player-btn" class="btn btn-primary">Add Player</button>
         </div>
-        <p class="hint">Player changes take effect from the next round.</p>
+        <button type="button" id="add-preset-roster-btn" class="btn btn-ghost preset-roster-btn">Add preset group (Andy, Bill, Geoff, Lucas, Adrian, Phil)</button>
+        <p class="hint">Player changes take effect from the next round. Preset only adds names that are not already listed.</p>
       </section>
 
       <section class="card">
@@ -61,7 +62,7 @@
 
       <section class="card card-danger">
         <h2>Danger Zone</h2>
-        <p class="hint" style="margin-bottom:.75rem">This will erase all match data and restore the default starting state.</p>
+        <p class="hint" style="margin-bottom:.75rem">This will erase all match data and clear the player list.</p>
         <button id="reset-btn" class="btn btn-danger">Reset Tournament</button>
       </section>
 

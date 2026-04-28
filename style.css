@@ -335,10 +335,62 @@ body {
 .round-details[open] summary::before { transform: rotate(90deg); }
 .round-details summary:hover { color: var(--text); }
 
+.history-set-block {
+  margin-top: .85rem;
+}
+.history-set-block:first-of-type { margin-top: .5rem; }
+
+.history-set-title {
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--accent);
+  margin-bottom: .35rem;
+}
+
 .history-matches {
   padding: .5rem 0 .25rem 1.1rem;
   border-left: 2px solid var(--border);
-  margin-top: .35rem;
+  margin-top: 0;
+}
+
+/* ── Later this round (preview) ───────────────────────────────────────────── */
+.later-sets-card {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.later-sets-heading {
+  font-size: .85rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  font-weight: 600;
+  margin-bottom: 0;
+}
+
+.later-set-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem .75rem;
+  align-items: baseline;
+  padding: .4rem 0;
+  font-size: .82rem;
+  border-bottom: 1px solid var(--border-light);
+}
+.later-set-row:last-child { border-bottom: none; }
+
+.later-set-label {
+  color: var(--accent);
+  font-weight: 600;
+  min-width: 3.5rem;
+}
+
+.later-set-pairs {
+  color: var(--text-muted);
+  flex: 1;
+  min-width: 12rem;
 }
 
 .history-match {
@@ -426,6 +478,12 @@ body {
 }
 .add-player-row input:focus { border-color: var(--accent); }
 .add-player-row input::placeholder { color: var(--text-dim); }
+
+.preset-roster-btn {
+  width: 100%;
+  margin-top: .65rem;
+  justify-content: center;
+}
 
 /* ── Admin: Round Controls ────────────────────────────────────────────────── */
 .round-status { color: var(--text-muted); font-size: .875rem; margin-bottom: .8rem; }

@@ -3,36 +3,105 @@
 // ── Storage key ────────────────────────────────────────────────────────────
 const STORAGE_KEY = 'mordhiem_v1';
 
-// ── Default / initial state ─────────────────────────────────────────────────
-// Round 1 is pre-seeded: Andy beat Bill, Lucas beat Geoff.
-// Adrian vs Phil is the remaining unplayed match.
+// ── Round-robin: each tournament "round" is a full cycle (everyone vs everyone once).
+// Returns one entry per set (scheduling slot): { matches: [[p1,p2],...], byePlayer: id|null }
+function roundRobinSchedule(playerIds, rotationOffset = 0) {
+  if (playerIds.length < 2) return [];
+  let roster = [...playerIds];
+  if (roster.length % 2 !== 0) roster.push('bye');
+
+  const n = roster.length;
+  const numRounds = n - 1;
+  const half = n / 2;
+  let arr = roster.slice();
+  const rot = ((rotationOffset % n) + n) % n;
+  if (rot > 0) arr = [...arr.slice(rot), ...arr.slice(0, rot)];
+
+  const out = [];
+  for (let r = 0; r < numRounds; r++) {
+    const matches = [];
+    let byePlayer = null;
+    for (let i = 0; i < half; i++) {
+      const a = arr[i];
+      const b = arr[n - 1 - i];
+      if (a === 'bye') byePlayer = b;
+      else if (b === 'bye') byePlayer = a;
+      else matches.push([a, b]);
+    }
+    out.push({ matches, byePlayer });
+
+    const fixed = arr[0];
+    const rest = arr.slice(1);
+    const last = rest.pop();
+    rest.unshift(last);
+    arr = [fixed, ...rest];
+  }
+  return out;
+}
+
+function setsFromSchedule(sched) {
+  return sched.map((sd, idx) => {
+    const matches = sd.matches.map(([p1, p2]) => ({
+      id: freshId(), p1, p2, result: null, played: false,
+    }));
+    if (sd.byePlayer) {
+      matches.push({
+        id: freshId(), p1: sd.byePlayer, p2: 'bye', result: 'p1', played: true,
+      });
+      state.byeHistory.push(sd.byePlayer);
+    }
+    return { setNumber: idx + 1, matches };
+  });
+}
+
+// Saved roster you can add in one click from Admin (skipped if that name already exists).
+const PRESET_PLAYERS = [
+  { id: 'andy',   name: 'Andy',   active: true },
+  { id: 'bill',   name: 'Bill',   active: true },
+  { id: 'geoff',  name: 'Geoff',  active: true },
+  { id: 'lucas',  name: 'Lucas',  active: true },
+  { id: 'adrian', name: 'Adrian', active: true },
+  { id: 'phil',   name: 'Phil',   active: true },
+];
+
+// Fresh tournament: no players, no rounds (use Admin to add people, then generate Round 1).
 function defaultState() {
-  return {
-    players: [
-      { id: 'andy',   name: 'Andy',   active: true },
-      { id: 'bill',   name: 'Bill',   active: true },
-      { id: 'geoff',  name: 'Geoff',  active: true },
-      { id: 'lucas',  name: 'Lucas',  active: true },
-      { id: 'adrian', name: 'Adrian', active: true },
-      { id: 'phil',   name: 'Phil',   active: true },
-    ],
-    rounds: [
-      {
-        roundNumber: 1,
-        matches: [
-          { id: 'm1r1', p1: 'andy',   p2: 'bill',  result: 'p1',  played: true  },
-          { id: 'm2r1', p1: 'geoff',  p2: 'lucas', result: 'p2',  played: true  },
-          { id: 'm3r1', p1: 'adrian', p2: 'phil',  result: null,  played: false },
-        ],
-      },
-    ],
-    byeHistory: [],  // ids of players who received byes, in order
-    idCounter:  20,  // monotonic id counter for new matches
+  state = {
+    players: [],
+    rounds: [],
+    byeHistory: [],
+    idCounter: 1,
   };
+}
+
+function addPresetRoster() {
+  let added = 0;
+  PRESET_PLAYERS.forEach(template => {
+    const nameLc = template.name.toLowerCase();
+    if (state.players.some(p => p.name.trim().toLowerCase() === nameLc)) return;
+    let id = template.id;
+    if (state.players.some(p => p.id === id)) id = freshId();
+    state.players.push({ id, name: template.name, active: true });
+    added++;
+  });
+  if (added === 0) {
+    alert('Those names are already on the player list.');
+    return;
+  }
+  saveState();
+  render();
 }
 
 // ── State ────────────────────────────────────────────────────────────────────
 let state;
+
+function migrateLegacyRound(rnd) {
+  if (rnd.sets) return rnd;
+  return {
+    roundNumber: rnd.roundNumber,
+    sets: [{ setNumber: 1, matches: rnd.matches || [] }],
+  };
+}
 
 function loadState() {
   try {
@@ -40,11 +109,12 @@ function loadState() {
     if (raw) {
       state = JSON.parse(raw);
       if (!state.byeHistory) state.byeHistory = [];
-      if (!state.idCounter)  state.idCounter  = 100;
+      if (!state.idCounter) state.idCounter = 100;
+      state.rounds = state.rounds.map(migrateLegacyRound);
       return;
     }
   } catch (_) { /* fall through */ }
-  state = defaultState();
+  defaultState();
 }
 
 function saveState() {
@@ -52,12 +122,38 @@ function saveState() {
 }
 
 // ── Small helpers ─────────────────────────────────────────────────────────────
-function pairKey(a, b)    { return [a, b].sort().join('|'); }
-function getPlayer(id)    { return state.players.find(p => p.id === id) || null; }
-function playerName(id)   { if (id === 'bye') return 'BYE'; const p = getPlayer(id); return p ? p.name : '?'; }
-function currentRound()   { return state.rounds.length ? state.rounds[state.rounds.length - 1] : null; }
-function isComplete(rnd)  { return rnd.matches.every(m => m.played); }
-function freshId()        { return `m${state.idCounter++}`; }
+function pairKey(a, b) { return [a, b].sort().join('|'); }
+function getPlayer(id) { return state.players.find(p => p.id === id) || null; }
+function playerName(id) { if (id === 'bye') return 'BYE'; const p = getPlayer(id); return p ? p.name : '?'; }
+function currentRound() { return state.rounds.length ? state.rounds[state.rounds.length - 1] : null; }
+
+function allMatchesInRound(rnd) {
+  return rnd.sets.flatMap(s => s.matches);
+}
+
+function isComplete(rnd) {
+  return rnd.sets.every(s => s.matches.every(m => m.played));
+}
+
+/** First set index that still has an unplayed real match, or -1 if round complete */
+function activeSetIndex(rnd) {
+  for (let i = 0; i < rnd.sets.length; i++) {
+    if (rnd.sets[i].matches.some(m => !m.played && m.p2 !== 'bye')) return i;
+  }
+  return -1;
+}
+
+function freshId() { return `m${state.idCounter++}`; }
+
+function findMatchInRound(roundIdx, matchId) {
+  const rnd = state.rounds[roundIdx];
+  if (!rnd) return null;
+  for (const set of rnd.sets) {
+    const m = set.matches.find(x => x.id === matchId);
+    if (m) return m;
+  }
+  return null;
+}
 
 // ── Scoring ───────────────────────────────────────────────────────────────────
 function computeScores() {
@@ -67,7 +163,7 @@ function computeScores() {
   });
 
   state.rounds.forEach(rnd => {
-    rnd.matches.forEach(m => {
+    allMatchesInRound(rnd).forEach(m => {
       if (!m.played || m.p1 === 'bye' || m.p2 === 'bye') return;
       const s1 = map[m.p1], s2 = map[m.p2];
       if (!s1 || !s2) return;
@@ -85,36 +181,7 @@ function computeScores() {
   );
 }
 
-// ── Meeting counts ────────────────────────────────────────────────────────────
-function meetingCounts() {
-  const counts = {};
-  state.rounds.forEach(rnd => {
-    rnd.matches.forEach(m => {
-      if (m.p1 === 'bye' || m.p2 === 'bye') return;
-      const k = pairKey(m.p1, m.p2);
-      counts[k] = (counts[k] || 0) + 1;
-    });
-  });
-  return counts;
-}
-
-// ── Perfect-matching enumeration ──────────────────────────────────────────────
-// Returns every possible way to pair up a list of players.
-// For n=6 this is 15 matchings — fast enough for any practical player count.
-function allMatchings(players) {
-  if (players.length === 0) return [[]];
-  const [first, ...rest] = players;
-  const out = [];
-  rest.forEach((partner, i) => {
-    const remaining = rest.filter((_, j) => j !== i);
-    allMatchings(remaining).forEach(sub => out.push([[first, partner], ...sub]));
-  });
-  return out;
-}
-
 // ── Round generation ──────────────────────────────────────────────────────────
-// Generates a new round for the current active players.
-// Returns true on success, false/alert on error.
 function generateNextRound() {
   const active = state.players.filter(p => p.active).map(p => p.id);
   if (active.length < 2) {
@@ -122,74 +189,20 @@ function generateNextRound() {
     return false;
   }
 
-  let pool = [...active];
-  let byeId = null;
+  active.sort((a, b) => playerName(a).localeCompare(playerName(b)));
+  const rotation = state.rounds.length % active.length;
+  const sched = roundRobinSchedule(active, rotation);
+  const sets = setsFromSchedule(sched);
 
-  // ── BYE for odd-sized pools ──
-  if (pool.length % 2 !== 0) {
-    // Find who has had the fewest byes; break ties by avoiding the most-recent bye recipient
-    const lastRnd = currentRound();
-    const lastByeMatch = lastRnd && lastRnd.matches.find(m => m.p1 === 'bye' || m.p2 === 'bye');
-    const lastByeId    = lastByeMatch
-      ? (lastByeMatch.p1 === 'bye' ? lastByeMatch.p2 : lastByeMatch.p1)
-      : null;
-
-    const byeCount = Object.fromEntries(pool.map(id => [id, 0]));
-    state.byeHistory.forEach(id => { if (id in byeCount) byeCount[id]++; });
-
-    const sorted = [...pool].sort((a, b) => {
-      if (a === lastByeId && b !== lastByeId) return  1;
-      if (b === lastByeId && a !== lastByeId) return -1;
-      return byeCount[a] - byeCount[b];
-    });
-    byeId = sorted[0];
-    pool  = pool.filter(id => id !== byeId);
-  }
-
-  // ── Score every possible matching ──
-  const counts     = meetingCounts();
-  const lastPairs  = new Set();
-  const last = currentRound();
-  if (last) {
-    last.matches.forEach(m => {
-      if (m.p1 !== 'bye' && m.p2 !== 'bye') lastPairs.add(pairKey(m.p1, m.p2));
-    });
-  }
-
-  const matchings = allMatchings(pool);
-  let bestMatching = matchings[0];
-  let bestScore    = Infinity;
-
-  matchings.forEach(matching => {
-    let score = 0;
-    matching.forEach(([a, b]) => {
-      score += (counts[pairKey(a, b)] || 0) * 10; // prefer fewer prior meetings
-      if (lastPairs.has(pairKey(a, b))) score += 100;  // strongly avoid immediate repeats
-    });
-    if (score < bestScore) { bestScore = score; bestMatching = matching; }
-  });
-
-  // ── Build round ──
   const roundNumber = state.rounds.length + 1;
-  const matches = bestMatching.map(([p1, p2]) => ({
-    id: freshId(), p1, p2, result: null, played: false,
-  }));
-
-  if (byeId) {
-    matches.push({ id: freshId(), p1: byeId, p2: 'bye', result: 'p1', played: true });
-    state.byeHistory.push(byeId);
-  }
-
-  state.rounds.push({ roundNumber, matches });
+  state.rounds.push({ roundNumber, sets });
   saveState();
   return true;
 }
 
 // ── Match actions ──────────────────────────────────────────────────────────────
 function setMatchResult(roundIdx, matchId, result) {
-  const rnd   = state.rounds[roundIdx];
-  if (!rnd) return;
-  const match = rnd.matches.find(m => m.id === matchId);
+  const match = findMatchInRound(roundIdx, matchId);
   if (!match) return;
 
   match.result = result;
@@ -199,9 +212,7 @@ function setMatchResult(roundIdx, matchId, result) {
 }
 
 function undoMatch(roundIdx, matchId) {
-  const rnd   = state.rounds[roundIdx];
-  if (!rnd) return;
-  const match = rnd.matches.find(m => m.id === matchId);
+  const match = findMatchInRound(roundIdx, matchId);
   if (!match || match.p2 === 'bye') return;
 
   match.result = null;
@@ -230,8 +241,9 @@ function toggleActive(playerId) {
 }
 
 function resetTournament() {
-  if (!confirm('Reset ALL tournament data? This cannot be undone.')) return;
-  state = defaultState();
+  if (!confirm('Reset ALL tournament data and clear all players? This cannot be undone.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  defaultState();
   saveState();
   render();
 }
@@ -258,21 +270,26 @@ function renderUpcoming() {
     return;
   }
 
-  title.textContent = `Round ${rnd.roundNumber}`;
+  const nSets = rnd.sets.length;
+  const aIdx  = activeSetIndex(rnd);
 
-  if (isComplete(rnd)) {
+  if (aIdx < 0) {
+    title.textContent = `Round ${rnd.roundNumber}`;
     content.innerHTML = `
       <div class="round-complete">
-        <p>Round ${rnd.roundNumber} complete!</p>
+        <p>Round ${rnd.roundNumber} complete (${nSets} set${nSets !== 1 ? 's' : ''} — everyone played everyone).</p>
         <button class="btn btn-primary" onclick="handleGenerate()">Generate Round ${rnd.roundNumber + 1}</button>
       </div>`;
     return;
   }
 
-  const roundIdx = state.rounds.length - 1;
-  const pending = rnd.matches.filter(m => !m.played && m.p1 !== 'bye' && m.p2 !== 'bye');
+  const curSet = rnd.sets[aIdx];
+  title.textContent = `Round ${rnd.roundNumber} · Set ${curSet.setNumber} of ${nSets}`;
 
-  const html = pending.map(m => {
+  const roundIdx = state.rounds.length - 1;
+  const pending = curSet.matches.filter(m => !m.played && m.p1 !== 'bye' && m.p2 !== 'bye');
+
+  const grid = pending.map(m => {
     const n1 = playerName(m.p1);
     const n2 = playerName(m.p2);
     return `
@@ -286,9 +303,33 @@ function renderUpcoming() {
       </div>`;
   }).join('');
 
-  content.innerHTML = html
-    ? `<div class="match-grid">${html}</div>`
-    : '<p class="empty">No pending matches this round.</p>';
+  const laterSets = rnd.sets.slice(aIdx + 1);
+  let previewHtml = '';
+  if (laterSets.length > 0) {
+    const blocks = laterSets.map(st => {
+      const lines = st.matches
+        .filter(m => m.p2 !== 'bye')
+        .map(m => `${playerName(m.p1)} vs ${playerName(m.p2)}`)
+        .join(', ');
+      return `
+        <div class="later-set-row">
+          <span class="later-set-label">Set ${st.setNumber}</span>
+          <span class="later-set-pairs">${lines}</span>
+        </div>`;
+    }).join('');
+    previewHtml = `
+      <div class="later-sets-card">
+        <h3 class="later-sets-heading">Later this round</h3>
+        <p class="hint" style="margin-top:0;margin-bottom:.6rem">Scheduled matchups — enter results when you reach each set.</p>
+        ${blocks}
+      </div>`;
+  }
+
+  const main = grid
+    ? `<div class="match-grid">${grid}</div>`
+    : '<p class="empty">No pending matches in this set.</p>';
+
+  content.innerHTML = main + previewHtml;
 }
 
 // ── Render: Scoreboard ─────────────────────────────────────────────────────────
@@ -325,12 +366,11 @@ function renderScoreboard() {
 }
 
 // ── Render: Match History ──────────────────────────────────────────────────────
-// Shows every finished match, grouped by round (includes in-progress rounds).
 function renderHistory() {
   const content = document.getElementById('history-content');
 
   const withPlayed = state.rounds.filter(r =>
-    r.matches.some(m => m.played && m.p1 !== 'bye' && m.p2 !== 'bye')
+    allMatchesInRound(r).some(m => m.played && m.p1 !== 'bye' && m.p2 !== 'bye')
   );
 
   if (withPlayed.length === 0) {
@@ -344,40 +384,49 @@ function renderHistory() {
     const roundIdx = state.rounds.indexOf(rnd);
     const isCurrentRound = roundIdx === state.rounds.length - 1;
 
-    const rows = rnd.matches
-      .filter(m => m.played && m.p1 !== 'bye' && m.p2 !== 'bye')
-      .map(m => {
-        const n1 = playerName(m.p1), n2 = playerName(m.p2);
-        let result = 'Draw';
-        if      (m.result === 'p1') result = `<strong>${n1}</strong> won`;
-        else if (m.result === 'p2') result = `<strong>${n2}</strong> won`;
-        const undo = isCurrentRound
-          ? `<button type="button" class="undo-btn history-undo" onclick="undoMatch(${roundIdx},'${m.id}')">Clear (pending)</button>`
-          : '';
-        return `
-          <div class="history-match">
-            <div class="history-match-top">
-              <span class="history-players">${n1} vs ${n2}</span>
-              <span class="history-result">${result}</span>
-            </div>
-            <div class="history-match-edit">
-              <span class="history-edit-label">Change result</span>
-              <button type="button" class="result-btn btn-win history-edit-btn"
-                onclick="setMatchResult(${roundIdx},'${m.id}','p1')">${n1} won</button>
-              <button type="button" class="result-btn btn-draw history-edit-btn"
-                onclick="setMatchResult(${roundIdx},'${m.id}','draw')">Draw</button>
-              <button type="button" class="result-btn btn-win history-edit-btn"
-                onclick="setMatchResult(${roundIdx},'${m.id}','p2')">${n2} won</button>
-              ${undo}
-            </div>
-          </div>`;
-      }).join('');
+    const setBlocks = rnd.sets.map(st => {
+      const rows = st.matches
+        .filter(m => m.played && m.p1 !== 'bye' && m.p2 !== 'bye')
+        .map(m => {
+          const n1 = playerName(m.p1), n2 = playerName(m.p2);
+          let result = 'Draw';
+          if      (m.result === 'p1') result = `<strong>${n1}</strong> won`;
+          else if (m.result === 'p2') result = `<strong>${n2}</strong> won`;
+          const undo = isCurrentRound
+            ? `<button type="button" class="undo-btn history-undo" onclick="undoMatch(${roundIdx},'${m.id}')">Clear (pending)</button>`
+            : '';
+          return `
+            <div class="history-match">
+              <div class="history-match-top">
+                <span class="history-players">${n1} vs ${n2}</span>
+                <span class="history-result">${result}</span>
+              </div>
+              <div class="history-match-edit">
+                <span class="history-edit-label">Change result</span>
+                <button type="button" class="result-btn btn-win history-edit-btn"
+                  onclick="setMatchResult(${roundIdx},'${m.id}','p1')">${n1} won</button>
+                <button type="button" class="result-btn btn-draw history-edit-btn"
+                  onclick="setMatchResult(${roundIdx},'${m.id}','draw')">Draw</button>
+                <button type="button" class="result-btn btn-win history-edit-btn"
+                  onclick="setMatchResult(${roundIdx},'${m.id}','p2')">${n2} won</button>
+                ${undo}
+              </div>
+            </div>`;
+        }).join('');
+
+      if (!rows) return '';
+      return `
+        <div class="history-set-block">
+          <div class="history-set-title">Set ${st.setNumber}</div>
+          <div class="history-matches">${rows}</div>
+        </div>`;
+    }).join('');
 
     const open = idx === 0 ? 'open' : '';
     return `
       <details class="round-details" ${open}>
         <summary>Round ${rnd.roundNumber}</summary>
-        <div class="history-matches">${rows}</div>
+        ${setBlocks}
       </details>`;
   }).join('');
 
@@ -386,7 +435,6 @@ function renderHistory() {
 
 // ── Render: Admin ──────────────────────────────────────────────────────────────
 function renderAdmin() {
-  // Player list
   const playerEl = document.getElementById('admin-players');
   playerEl.innerHTML = state.players.map(p => `
     <div class="player-item ${p.active ? '' : 'inactive'}">
@@ -397,7 +445,6 @@ function renderAdmin() {
       </button>
     </div>`).join('') || '<p class="empty">No players.</p>';
 
-  // Round controls
   const ctrlEl = document.getElementById('admin-round-controls');
   const rnd    = currentRound();
   let statusMsg = '', warningMsg = '';
@@ -407,8 +454,10 @@ function renderAdmin() {
   } else if (isComplete(rnd)) {
     statusMsg = `Round ${rnd.roundNumber} is complete. Ready to generate Round ${rnd.roundNumber + 1}.`;
   } else {
-    const left = rnd.matches.filter(m => !m.played && m.p2 !== 'bye').length;
-    statusMsg  = `Round ${rnd.roundNumber} is in progress (${left} match${left !== 1 ? 'es' : ''} remaining).`;
+    const left = allMatchesInRound(rnd).filter(m => !m.played && m.p2 !== 'bye').length;
+    const nSets = rnd.sets.length;
+    const cur   = activeSetIndex(rnd);
+    statusMsg  = `Round ${rnd.roundNumber} in progress — Set ${rnd.sets[cur].setNumber} of ${nSets} active (${left} game${left !== 1 ? 's' : ''} left in the round).`;
     warningMsg = 'Generating now will leave the current round unfinished.';
   }
 
@@ -446,12 +495,10 @@ window.handleGenerate = function () {
 document.addEventListener('DOMContentLoaded', () => {
   loadState();
 
-  // Tabs
   document.querySelectorAll('.tab-btn').forEach(btn =>
     btn.addEventListener('click', () => switchTab(btn.dataset.tab))
   );
 
-  // Add player
   const input = document.getElementById('add-player-input');
   document.getElementById('add-player-btn').addEventListener('click', () => {
     if (addPlayer(input.value)) input.value = '';
@@ -460,8 +507,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter' && addPlayer(input.value)) input.value = '';
   });
 
-  // Reset
   document.getElementById('reset-btn').addEventListener('click', resetTournament);
+
+  document.getElementById('add-preset-roster-btn').addEventListener('click', addPresetRoster);
 
   render();
 });
