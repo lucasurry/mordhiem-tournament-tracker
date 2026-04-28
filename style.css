@@ -411,56 +411,40 @@ body {
 
 .history-match {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: .45rem;
-  padding: .55rem 0;
+  align-items: center;
+  gap: .65rem;
+  padding: .45rem 0;
   font-size: .875rem;
   border-bottom: 1px solid var(--border-light);
 }
 .history-match:last-child { border-bottom: none; }
 
-.history-match-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: .35rem .75rem;
+.history-players {
+  font-weight: 500;
+  flex: 1;
 }
 
-.history-players { font-weight: 500; }
-
-.history-result { color: var(--text-muted); font-size: .82rem; text-align: right; }
-
-.history-match-edit {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: .35rem;
+.history-result {
+  color: var(--text-muted);
+  font-size: .82rem;
+  white-space: nowrap;
+  text-align: right;
 }
 
-.history-edit-label {
-  font-size: .7rem;
+.result-select {
+  flex-shrink: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
   color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: .04em;
-  width: 100%;
-}
-
-@media (min-width: 520px) {
-  .history-edit-label { width: auto; margin-right: .25rem; }
-}
-
-.result-btn.history-edit-btn {
-  padding: .28rem .55rem;
   font-size: .72rem;
+  padding: .25rem .4rem;
+  cursor: pointer;
+  outline: none;
+  transition: border-color .15s, color .15s;
 }
-
-.history-undo {
-  margin: 0;
-  margin-left: auto;
-  padding: .2rem .45rem;
-}
+.result-select:hover,
+.result-select:focus { border-color: var(--text-muted); color: var(--text); }
 
 /* ── Admin: Players ───────────────────────────────────────────────────────── */
 .player-item {

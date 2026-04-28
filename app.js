@@ -427,28 +427,23 @@ function renderHistory() {
         .filter(m => m.played && m.p1 !== 'bye' && m.p2 !== 'bye')
         .map(m => {
           const n1 = playerName(m.p1), n2 = playerName(m.p2);
-          let result = 'Draw';
-          if      (m.result === 'p1') result = `<strong>${n1}</strong> won`;
-          else if (m.result === 'p2') result = `<strong>${n2}</strong> won`;
-          const undo = isCurrentRound
-            ? `<button type="button" class="undo-btn history-undo" onclick="undoMatch(${roundIdx},'${m.id}')">Clear (pending)</button>`
+          let resultLabel = 'Draw';
+          if      (m.result === 'p1') resultLabel = `${n1} won`;
+          else if (m.result === 'p2') resultLabel = `${n2} won`;
+          const undoOpt = isCurrentRound
+            ? `<option value="undo">Clear (pending)</option>`
             : '';
           return `
             <div class="history-match">
-              <div class="history-match-top">
-                <span class="history-players">${n1} vs ${n2}</span>
-                <span class="history-result">${result}</span>
-              </div>
-              <div class="history-match-edit">
-                <span class="history-edit-label">Change result</span>
-                <button type="button" class="result-btn btn-win history-edit-btn"
-                  onclick="setMatchResult(${roundIdx},'${m.id}','p1')">${n1} won</button>
-                <button type="button" class="result-btn btn-draw history-edit-btn"
-                  onclick="setMatchResult(${roundIdx},'${m.id}','draw')">Draw</button>
-                <button type="button" class="result-btn btn-win history-edit-btn"
-                  onclick="setMatchResult(${roundIdx},'${m.id}','p2')">${n2} won</button>
-                ${undo}
-              </div>
+              <select class="result-select" onchange="handleHistorySelect(${roundIdx},'${m.id}',this)">
+                <option value="">Change result</option>
+                <option value="p1">${n1} won</option>
+                <option value="draw">Draw</option>
+                <option value="p2">${n2} won</option>
+                ${undoOpt}
+              </select>
+              <span class="history-players">${n1} vs ${n2}</span>
+              <span class="history-result">${resultLabel}</span>
             </div>`;
         }).join('');
 
@@ -517,6 +512,14 @@ function render() {
 window.setMatchResult = setMatchResult;
 window.undoMatch      = undoMatch;
 window.toggleActive   = toggleActive;
+
+window.handleHistorySelect = function (roundIdx, matchId, sel) {
+  const val = sel.value;
+  if (!val) return;
+  sel.value = '';  // reset back to placeholder
+  if (val === 'undo') undoMatch(roundIdx, matchId);
+  else setMatchResult(roundIdx, matchId, val);
+};
 
 window.handleGenerate = function () {
   const rnd = currentRound();
