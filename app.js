@@ -435,6 +435,8 @@ function renderHistory() {
             : '';
           return `
             <div class="history-match">
+              <span class="history-players">${n1} vs ${n2}</span>
+              <span class="history-result">${resultLabel}</span>
               <select class="result-select" onchange="handleHistorySelect(${roundIdx},'${m.id}',this)">
                 <option value="">Change result</option>
                 <option value="p1">${n1} won</option>
@@ -442,8 +444,6 @@ function renderHistory() {
                 <option value="p2">${n2} won</option>
                 ${undoOpt}
               </select>
-              <span class="history-players">${n1} vs ${n2}</span>
-              <span class="history-result">${resultLabel}</span>
             </div>`;
         }).join('');
 
