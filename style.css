@@ -429,7 +429,9 @@ body {
   font-size: .85rem;
   font-weight: 600;
   white-space: nowrap;
-  text-align: right;
+  text-align: left;
+  width: 9rem;
+  flex-shrink: 0;
 }
 
 .result-select {
