@@ -545,5 +545,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('reset-btn').addEventListener('click', resetTournament);
 
+  window.addEventListener('storage', e => {
+    if (e.key === STORAGE_KEY) {
+      loadState();
+      render();
+    }
+  });
+
   render();
 });
