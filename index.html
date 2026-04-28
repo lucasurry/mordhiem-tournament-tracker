@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mordhiem Tournament</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <h1>Mordhiem Tournament</h1>
+    </div>
+  </header>
+
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="tournament">Tournament</button>
+    <button class="tab-btn" data-tab="admin">Admin</button>
+  </nav>
+
+  <div class="container">
+
+    <!-- ── Tournament Tab ── -->
+    <div id="tab-tournament" class="tab-pane active">
+
+      <section class="card" id="section-upcoming">
+        <h2 id="upcoming-title">Current Round</h2>
+        <div id="upcoming-content"></div>
+      </section>
+
+      <section class="card">
+        <h2>Scoreboard</h2>
+        <div id="scoreboard-content"></div>
+      </section>
+
+      <section class="card">
+        <h2>Match History</h2>
+        <div id="history-content"></div>
+      </section>
+
+    </div>
+
+    <!-- ── Admin Tab ── -->
+    <div id="tab-admin" class="tab-pane">
+
+      <section class="card">
+        <h2>Players</h2>
+        <div id="admin-players"></div>
+        <div class="add-player-row">
+          <input type="text" id="add-player-input" placeholder="New player name…" maxlength="30" autocomplete="off">
+          <button id="add-player-btn" class="btn btn-primary">Add Player</button>
+        </div>
+        <p class="hint">Player changes take effect from the next round.</p>
+      </section>
+
+      <section class="card">
+        <h2>Round Controls</h2>
+        <div id="admin-round-controls"></div>
+      </section>
+
+      <section class="card card-danger">
+        <h2>Danger Zone</h2>
+        <p class="hint" style="margin-bottom:.75rem">This will erase all match data and restore the default starting state.</p>
+        <button id="reset-btn" class="btn btn-danger">Reset Tournament</button>
+      </section>
+
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
