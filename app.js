@@ -261,11 +261,28 @@ function toggleActive(playerId) {
   render();
 }
 
-function resetTournament() {
-  if (!confirm('Reset ALL tournament data? This will clear all players and matches. This cannot be undone.')) return;
-  localStorage.removeItem(STORAGE_KEY);
-  defaultState();
+function resetCurrentRound() {
+  const rnd = currentRound();
+  if (!rnd) return;
+  if (!confirm(`Reset Round ${rnd.roundNumber}? All results will be cleared but the matchups will stay the same. This cannot be undone.`)) return;
+  rnd.sets.forEach(set => {
+    set.matches.forEach(m => {
+      if (m.p2 !== 'bye') {
+        m.result = null;
+        m.played = false;
+      }
+    });
+  });
   saveState();
+  render();
+}
+
+function resetTournament() {
+  if (!confirm('Reset tournament? This will clear all rounds and generate a fresh Round 1 with the same players. This cannot be undone.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  state.rounds = [];
+  state.byeHistory = [];
+  generateNextRound();
 }
 
 // ── Tab switching ──────────────────────────────────────────────────────────────
@@ -513,7 +530,10 @@ function renderAdmin() {
   ctrlEl.innerHTML = `
     <p class="round-status">${statusMsg}</p>
     ${warningMsg ? `<p class="hint" style="color:#e8c04a;margin-bottom:.75rem">⚠ ${warningMsg}</p>` : ''}
-    <button class="btn btn-primary" onclick="handleGenerate()">Generate Next Round</button>`;
+    <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="handleGenerate()">Generate Next Round</button>
+      ${rnd ? `<button class="btn btn-danger" onclick="resetCurrentRound()">Reset Round ${rnd.roundNumber}</button>` : ''}
+    </div>`;
 }
 
 // ── Master render ──────────────────────────────────────────────────────────────
@@ -526,9 +546,10 @@ function render() {
 }
 
 // ── Global handlers (used by inline onclick attributes) ────────────────────────
-window.setMatchResult = setMatchResult;
-window.undoMatch      = undoMatch;
-window.toggleActive   = toggleActive;
+window.setMatchResult    = setMatchResult;
+window.undoMatch         = undoMatch;
+window.toggleActive      = toggleActive;
+window.resetCurrentRound = resetCurrentRound;
 
 window.handleHistorySelect = function (roundIdx, matchId, sel) {
   const val = sel.value;
