@@ -17,6 +17,7 @@ function initDb() {
       if (!state.byeHistory) state.byeHistory = [];
       if (!state.idCounter)  state.idCounter  = 100;
       state.rounds = state.rounds.map(migrateLegacyRound);
+      if (runMigrations()) saveState();
     } else {
       // Nothing in Firebase yet — migrate from localStorage or use defaults.
       try {
@@ -32,6 +33,7 @@ function initDb() {
       } catch (_) {
         initialTournamentState();
       }
+      runMigrations();
       dbRef.set(state);
     }
     dbReady = true;
@@ -137,6 +139,59 @@ function migrateLegacyRound(rnd) {
     roundNumber: rnd.roundNumber,
     sets: [{ setNumber: 1, matches: rnd.matches || [] }],
   };
+}
+
+// ── One-time migrations ────────────────────────────────────────────────────────
+// Returns true if any migration was applied (caller should saveState).
+function runMigrations() {
+  if (!state.migrations) state.migrations = [];
+  let dirty = false;
+
+  // Phil dropped out before any Set 2 games were played.
+  // Keep Andy-Bill (Bill won) and Geoff-Adrian (Adrian won) from Set 1.
+  // Give Lucas a bye in Set 1 (Phil's vacated slot) then rebuild Sets 2-5
+  // as a fresh round-robin of the 5 remaining players.
+  if (!state.migrations.includes('phil-dropout-v1')) {
+    const phil = state.players.find(p => p.id === 'phil');
+    if (phil && phil.active) {
+      phil.active = false;
+
+      const rnd = state.rounds[0];
+      if (rnd) {
+        // Player order ['lucas','andy','geoff','adrian','bill'] makes roundRobinSchedule
+        // produce Set 1 = Lucas-BYE · Andy-Bill · Geoff-Adrian, which matches the
+        // two already-played games. Sets 2-5 cover all remaining pairs.
+        state.byeHistory = [];
+        const sched = roundRobinSchedule(['lucas', 'andy', 'geoff', 'adrian', 'bill'], 0);
+        const newSets = setsFromSchedule(sched);
+
+        // Re-apply Set 1 results: Bill beat Andy, Adrian beat Geoff.
+        const set1 = newSets[0];
+
+        const andyBill = set1.matches.find(
+          m => (m.p1 === 'andy' && m.p2 === 'bill') || (m.p1 === 'bill' && m.p2 === 'andy')
+        );
+        if (andyBill) {
+          andyBill.result = andyBill.p1 === 'bill' ? 'p1' : 'p2';
+          andyBill.played = true;
+        }
+
+        const geoffAdrian = set1.matches.find(
+          m => (m.p1 === 'geoff' && m.p2 === 'adrian') || (m.p1 === 'adrian' && m.p2 === 'geoff')
+        );
+        if (geoffAdrian) {
+          geoffAdrian.result = geoffAdrian.p1 === 'adrian' ? 'p1' : 'p2';
+          geoffAdrian.played = true;
+        }
+
+        rnd.sets = newSets;
+      }
+    }
+    state.migrations.push('phil-dropout-v1');
+    dirty = true;
+  }
+
+  return dirty;
 }
 
 function saveState() {
